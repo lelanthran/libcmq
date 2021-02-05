@@ -57,6 +57,14 @@ void cmq_del (cmq_t *cmq)
    free (cmq);
 }
 
+size_t cmq_count (cmq_t *cmq)
+{
+   if (!cmq)
+      return 0;
+
+   return cmq->nelems;
+}
+
 bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len)
 {
    struct cmq_node_t *newnode = NULL;

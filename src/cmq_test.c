@@ -39,7 +39,7 @@ int test_strings (cmq_t *cmq)
    size_t output_len = 0;
 
    while ((more = cmq_remove (cmq, (void *)&output, &output_len))==true) {
-      CMQ_LOG ("Removed [%s:%zu]\n", output, output_len);
+      CMQ_LOG ("Removed [%s:%zu] (%zu remaining)\n", output, output_len, cmq_count (cmq));
    }
 
    return ret;

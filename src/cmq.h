@@ -20,6 +20,8 @@ extern "C" {
    cmq_t *cmq_new (void);
    void cmq_del (cmq_t *cmq);
 
+   size_t cmq_count (cmq_t *cmq);
+
    bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len);
    bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len);
    bool cmq_peek (cmq_t *cmq, void **payload, size_t *payload_len);
