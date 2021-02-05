@@ -5,31 +5,31 @@
 
 #include "cmq.h"
 
+static struct {
+   char *string;
+   size_t len;
+} g_strings [] = {
+   {  "one",         0 },
+   {  "two",         0 },
+   {  "three",       0 },
+   {  "four",        0 },
+   {  "five",        0 },
+   {  "six",         0 },
+   {  "seven",       0 },
+   {  "eight",       0 },
+   {  "nine",        0 },
+   {  "ten",         0 },
+};
+static size_t g_nstrings = sizeof g_strings / sizeof g_strings[0];
+
 int test_strings (cmq_t *cmq)
 {
-   static struct {
-      char *string;
-      size_t len;
-   } strings [] = {
-      {  "one",         0 },
-      {  "two",         0 },
-      {  "three",       0 },
-      {  "four",        0 },
-      {  "five",        0 },
-      {  "six",         0 },
-      {  "seven",       0 },
-      {  "eight",       0 },
-      {  "nine",        0 },
-      {  "ten",         0 },
-   };
-   static size_t nstrings = sizeof strings / sizeof strings[0];
-
    int ret = EXIT_SUCCESS;
 
-   for (size_t i=0; i<nstrings; i++) {
-      strings[i].len = strlen (strings[i].string) + 1;
-      if (!(cmq_insert (cmq, strings[i].string, strings[i].len))) {
-         CMQ_LOG ("Failed to insert [%s:%zu]\n", strings[i].string, strings[i].len);
+   for (size_t i=0; i<g_nstrings; i++) {
+      g_strings[i].len = strlen (g_strings[i].string) + 1;
+      if (!(cmq_insert (cmq, g_strings[i].string, g_strings[i].len))) {
+         CMQ_LOG ("Failed to insert [%s:%zu]\n", g_strings[i].string, g_strings[i].len);
          ret = EXIT_FAILURE;
       }
    }
@@ -40,6 +40,21 @@ int test_strings (cmq_t *cmq)
 
    while ((more = cmq_remove (cmq, (void *)&output, &output_len))==true) {
       CMQ_LOG ("Removed [%s:%zu] (%zu remaining)\n", output, output_len, cmq_count (cmq));
+   }
+
+   return ret;
+}
+
+int test_delqueue (cmq_t *cmq)
+{
+   int ret = EXIT_SUCCESS;
+
+   for (size_t i=0; i<g_nstrings; i++) {
+      g_strings[i].len = strlen (g_strings[i].string) + 1;
+      if (!(cmq_insert (cmq, g_strings[i].string, g_strings[i].len))) {
+         CMQ_LOG ("Failed to insert [%s:%zu]\n", g_strings[i].string, g_strings[i].len);
+         ret = EXIT_FAILURE;
+      }
    }
 
    return ret;
@@ -65,6 +80,13 @@ int main (void)
       ret = EXIT_FAILURE;
    } else {
       CMQ_LOG ("String tests passed.\n");
+   }
+
+   if ((test_delqueue (mq))!=EXIT_SUCCESS) {
+      CMQ_LOG ("delete-queue tests failed...\n");
+      ret = EXIT_FAILURE;
+   } else {
+      CMQ_LOG ("delete-queue tests passed.\n");
    }
 
    cmq_del (mq);

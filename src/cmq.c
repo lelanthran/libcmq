@@ -70,12 +70,25 @@ void cmq_del (cmq_t *cmq)
    if (!cmq)
       return;
 
+   mtx_lock (&cmq->lock_head);
+   mtx_lock (&cmq->lock_tail);
+   mtx_lock (&cmq->lock_nelems);
+
+   while (cmq->head) {
+      struct cmq_node_t *tmp = cmq->head->next;
+      cmq_node_del (cmq->head);
+      cmq->head = tmp;
+   }
+
+   mtx_unlock (&cmq->lock_head);
+   mtx_unlock (&cmq->lock_tail);
+   mtx_unlock (&cmq->lock_nelems);
+
    mtx_destroy (&cmq->lock_head);
    mtx_destroy (&cmq->lock_tail);
    mtx_destroy (&cmq->lock_nelems);
 
-   // TODO:
-   // Traverse head = head->next until head=>next = NULL, free each node
+
    free (cmq);
 }
 
@@ -123,7 +136,7 @@ bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len)
 
 bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len)
 {
-   if (!cmq)
+   if (!cmq || !cmq->nelems)
       return false;
 
    mtx_lock (&cmq->lock_tail);
@@ -151,6 +164,17 @@ bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len)
 
    mtx_lock (&cmq->lock_nelems);
    cmq->nelems--;
+   if (cmq->nelems == 0) {
+      mtx_lock (&cmq->lock_head);
+      mtx_lock (&cmq->lock_tail);
+
+      cmq->head = cmq->tail = NULL;
+
+      mtx_unlock (&cmq->lock_head);
+      mtx_unlock (&cmq->lock_tail);
+      return true;
+   }
+
    mtx_unlock (&cmq->lock_nelems);
 
    return true;
