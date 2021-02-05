@@ -1,6 +1,7 @@
 -I.
 -I./include
 -Dcmq_version='"0.1.2"'
+-D_GNU_SOURCE
 -DBUILD_TIMESTAMP='"201909162104"'
--std=c11
+-std=c99
 
