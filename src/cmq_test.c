@@ -158,7 +158,10 @@ void *worker_test (void *vptr_cmq)
          THRD_LOG ("Removed [%s] from cmq [%zu elements]\n", tmp, cmq_count (cmq));
          free (tmp);
       }
-      struct timespec tv = { 0, 1000 };
+      struct timespec tv = { 0, 0};
+
+      tv.tv_nsec = 1000000 * (rand () % 9);
+
       nanosleep (&tv, NULL);
 
    }
