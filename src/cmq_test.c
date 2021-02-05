@@ -150,7 +150,6 @@ void *worker_test (void *vptr_cmq)
             return NULL;
          }
          THRD_LOG ("Insert [%s] into cmq [%zu elements]\n", tmp, cmq_count (cmq));
-         free (tmp);
       } else {
          if (!(cmq_remove (cmq, (void **)&tmp, NULL))) {
             THRD_LOG ("Queue appears to be empty, unable to remove\n");
@@ -180,7 +179,7 @@ int test_threaded (cmq_t *cmq)
       return EXIT_FAILURE;
    }
 
-   pthread_t threads[1];
+   pthread_t threads[20];
    for (size_t i=0; i<sizeof threads/sizeof threads[0]; i++) {
       if ((pthread_create (&threads[i], NULL, worker_test, cmq))!=0) {
          CMQ_LOG ("Failed to start new thread %zu, aborting\n", i);

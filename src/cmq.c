@@ -176,7 +176,7 @@ bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len)
       pthread_mutex_unlock (&cmq->lock_head);
       pthread_mutex_unlock (&cmq->lock_tail);
 
-      pthread_mutex_lock (&cmq->lock_nelems);
+      pthread_mutex_unlock (&cmq->lock_nelems);
 
       return true;
    }
