@@ -11,9 +11,7 @@ struct cmq_node_t {
    size_t payload_len;
 };
 
-static struct cmq_node_t *cmq_node_new (struct cmq_node_t *prev,
-                                        struct cmq_node_t *next,
-                                        void *payload, size_t payload_len)
+static struct cmq_node_t *cmq_node_new (void *payload, size_t payload_len)
 {
    struct cmq_node_t *ret = calloc (1, sizeof *ret);
    if (!ret)
@@ -21,13 +19,6 @@ static struct cmq_node_t *cmq_node_new (struct cmq_node_t *prev,
 
    ret->payload = payload;
    ret->payload_len = payload_len;
-   ret->prev = prev;
-   ret->next = next;
-
-   if (prev)
-      prev->next = ret;
-   if (next)
-      next->prev = ret;
 
    return ret;
 }
@@ -36,11 +27,6 @@ static void cmq_node_del (struct cmq_node_t *node)
 {
    if (!node)
       return;
-
-   if (node->prev)
-      node->prev->next = node->next;
-   if (node->next)
-      node->next->prev = node->prev;
 
    free (node);
 }
@@ -77,8 +63,19 @@ bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len)
    if (!cmq)
       return false;
 
-   if (!(newnode = cmq_node_new (NULL, cmq->head, payload, payload_len)))
+   if (!(newnode = cmq_node_new (payload, payload_len)))
       return false;
+
+   newnode->prev = NULL;
+   newnode->next = cmq->head;
+   if (cmq->head)
+      cmq->head->prev = newnode;
+
+   cmq->head = newnode;
+   if (!cmq->tail)
+      cmq->tail = newnode;
+
+   cmq->nelems++;
 
    return true;
 }
@@ -87,13 +84,24 @@ bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len)
 {
    if (!(cmq_peek (cmq, payload, payload_len)))
       return false;
-   cmq_node_del (cmq->tail);
+
+   if (cmq->tail) {
+      struct cmq_node_t *tmp = cmq->tail;
+      cmq->tail = cmq->tail->prev;
+      if (cmq->tail)
+         cmq->tail->next = NULL;
+
+      cmq_node_del (tmp);
+   }
+
+   cmq->nelems--;
+
    return true;
 }
 
 bool cmq_peek (cmq_t *cmq, void **payload, size_t *payload_len)
 {
-   if (!cmq)
+   if (!cmq || !cmq->tail)
       return false;
 
    if (payload)
