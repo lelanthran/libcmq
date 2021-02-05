@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
+
+#include <pthread.h>
 
 #include "cmq.h"
 
@@ -119,6 +122,79 @@ int test_delqueue (cmq_t *cmq)
    return ret;
 }
 
+pthread_mutex_t g_lock;
+
+void *worker_test (void *vptr_cmq)
+{
+#define THRD_LOG(...)        do {\
+   pthread_mutex_lock (&g_lock);\
+   printf ("%lu: ", id);\
+   printf (__VA_ARGS__);\
+   pthread_mutex_unlock (&g_lock);\
+} while (0)
+
+   cmq_t *cmq = vptr_cmq;
+   pthread_t id = pthread_self ();
+   THRD_LOG ("Starting thread [%lu]\n", id);
+
+   for (size_t i=0; i<200; i++) {
+      int toss = rand () % 2;
+      char *tmp = NULL;
+      if (toss) {
+         char tmpstring[20];
+         snprintf (tmpstring, sizeof tmpstring, "%lu: [%zu]", id, i);
+         tmp = lstrdup (tmpstring);
+         if (!(cmq_insert (cmq, tmp, strlen (tmp) + 1))) {
+            THRD_LOG ("Error: unable to insert into cmq [%zu elements]\n", cmq_count (cmq));
+            free (tmp);
+            return NULL;
+         }
+         THRD_LOG ("Insert [%s] into cmq [%zu elements]\n", tmp, cmq_count (cmq));
+         free (tmp);
+      } else {
+         if (!(cmq_remove (cmq, (void **)&tmp, NULL))) {
+            THRD_LOG ("Queue appears to be empty, unable to remove\n");
+            continue;
+         }
+         THRD_LOG ("Removed [%s] from cmq [%zu elements]\n", tmp, cmq_count (cmq));
+         free (tmp);
+      }
+   }
+   THRD_LOG ("Ending thread\n");
+
+   return NULL;
+}
+
+int test_threaded (cmq_t *cmq)
+{
+   int ret = EXIT_SUCCESS;
+
+   pthread_mutexattr_t attr;
+   pthread_mutexattr_init (&attr);
+   pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
+   pthread_mutex_init (&g_lock, &attr);
+   pthread_mutexattr_destroy (&attr);
+
+   if (!(populate_strings (cmq, true))) {
+      CMQ_LOG ("Failed to populate the strings table\n");
+      return EXIT_FAILURE;
+   }
+
+   pthread_t threads[1];
+   for (size_t i=0; i<sizeof threads/sizeof threads[0]; i++) {
+      if ((pthread_create (&threads[i], NULL, worker_test, cmq))!=0) {
+         CMQ_LOG ("Failed to start new thread %zu, aborting\n", i);
+         ret = EXIT_FAILURE;
+      }
+   }
+
+   for (size_t i=0; i<sizeof threads/sizeof threads[0]; i++) {
+      pthread_join (threads[i], NULL);
+   }
+
+   return ret;
+}
+
 int main (void)
 {
    int ret = EXIT_SUCCESS;
@@ -139,6 +215,13 @@ int main (void)
       ret = EXIT_FAILURE;
    } else {
       CMQ_LOG ("Simple test passed.\n");
+   }
+
+   if ((test_threaded (mq))!=EXIT_SUCCESS) {
+      CMQ_LOG ("gradual-depletion test failed...\n");
+      ret = EXIT_FAILURE;
+   } else {
+      CMQ_LOG ("gradual-depletion test passed.\n");
    }
 
    if ((test_gradual_depletion (mq))!=EXIT_SUCCESS) {

@@ -56,9 +56,9 @@ cmq_t *cmq_new (void)
    pthread_mutexattr_init (&attr);
    pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
 
-  pthread_mutex_init (&ret->lock_head,   &attr);
-  pthread_mutex_init (&ret->lock_tail,   &attr);
-  pthread_mutex_init (&ret->lock_nelems, &attr);
+   pthread_mutex_init (&ret->lock_head,   &attr);
+   pthread_mutex_init (&ret->lock_tail,   &attr);
+   pthread_mutex_init (&ret->lock_nelems, &attr);
 
    pthread_mutexattr_destroy (&attr);
 
@@ -175,6 +175,9 @@ bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len)
 
       pthread_mutex_unlock (&cmq->lock_head);
       pthread_mutex_unlock (&cmq->lock_tail);
+
+      pthread_mutex_lock (&cmq->lock_nelems);
+
       return true;
    }
 
