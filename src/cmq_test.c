@@ -158,6 +158,9 @@ void *worker_test (void *vptr_cmq)
          THRD_LOG ("Removed [%s] from cmq [%zu elements]\n", tmp, cmq_count (cmq));
          free (tmp);
       }
+      struct timespec tv = { 0, 1000 };
+      nanosleep (&tv, NULL);
+
    }
    THRD_LOG ("Ending thread\n");
 
