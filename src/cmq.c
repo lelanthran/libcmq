@@ -113,9 +113,10 @@ bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len)
    if (!(newnode = cmq_node_new (payload, payload_len)))
       return false;
 
+   newnode->prev = NULL;
+
    mtx_lock (&cmq->lock_head);
 
-      newnode->prev = NULL;
       newnode->next = cmq->head;
       if (cmq->head)
          cmq->head->prev = newnode;
@@ -124,8 +125,10 @@ bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len)
 
    mtx_unlock (&cmq->lock_head);
 
+   mtx_lock (&cmq->lock_tail);
    if (!cmq->tail)
       cmq->tail = newnode;
+   mtx_unlock (&cmq->lock_tail);
 
    mtx_lock (&cmq->lock_nelems);
    cmq->nelems++;
