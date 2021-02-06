@@ -6,6 +6,15 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+/* *****************************************************************************
+ * Implementation of a thread-safe FIFO message-queue using POSIX threads.
+ *
+ * Messages are added to the queue with cmq_nq() and removed with cmq_dq(). Messages
+ * are added to the head of the queue and removed from the tail of the queue; this means
+ * that the oldest messages are removed first.
+ *
+ * The caller will always get the messages in a First-In-First-Out order (FIFO).
+ */
 typedef struct cmq_t cmq_t;
 
 #define CMQ_LOG(...)        do {\
@@ -17,13 +26,38 @@ typedef struct cmq_t cmq_t;
 extern "C" {
 #endif
 
+   // Create a new queue. Queue must be destroyed with cmq_del(). Returns NULL on error.
    cmq_t *cmq_new (void);
+   // Destroys a queue, discarding all the elements contained within it.
    void cmq_del (cmq_t *cmq);
 
-   size_t cmq_count (cmq_t *cmq);
+   // Returns the number of elements in the queue, or <0 on error.
+   int cmq_count (cmq_t *cmq);
 
-   bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len);
-   bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout);
+   // Insert the element into the queue, returns true on success and false on error.
+   bool cmq_nq (cmq_t *cmq, void *payload, size_t payload_len);
+
+   // Removes an element from the queue and places the element's pointer and length
+   // into the buffers provided. If the queue is empty, this function will wait a maximum
+   // of timeout seconds for the queue to be populated and will return the oldest element
+   // in the queue.
+   //
+   // If payload is NULL it is ignored. If payload_len is NULL it is ignored. If timeout
+   // is 0 then this function does not wait for an empty queue to be populated and will
+   // return immediately, returning true for a successful element removal and false if no
+   // element was removed. If timeout is non-zero, then this function will wait *at least*
+   // the specified number of seconds for a message to arrive.
+   //
+   // Returns true if a message was removed and places the message into payload and
+   // payload_len.
+   // Returns false if no message was removed, in which case payload and payload_len
+   // remain unchanged.
+   bool cmq_dq (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout);
+
+   // Returns a message without removing it from the queue. Returns true if a message
+   // was found, in which case payload and payload_len contains the message.
+   // Returns false if no message was found, in which case payload and payload_len
+   // remain unchanged.
    bool cmq_peek (cmq_t *cmq, void **payload, size_t *payload_len);
 
 #ifdef __cplusplus
