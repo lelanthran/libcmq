@@ -60,7 +60,7 @@ int test_simple (cmq_t *cmq)
       ret = EXIT_FAILURE;
    }
 
-   while ((more = cmq_remove (cmq, (void *)&output, &output_len))==true) {
+   while ((more = cmq_remove (cmq, (void *)&output, &output_len, 0))==true) {
       CMQ_LOG ("Removed [%s:%zu] (%zu remaining)\n", output, output_len, cmq_count (cmq));
    }
 
@@ -92,13 +92,13 @@ int test_gradual_depletion (cmq_t *cmq)
 
       char *tmp = NULL;
 
-      if (!(cmq_remove (cmq, (void **)&tmp, NULL))) {
+      if (!(cmq_remove (cmq, (void **)&tmp, NULL, 0))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
       CMQ_LOG ("Removed [%s]\n", tmp);
       free (tmp);
-      if (!(cmq_remove (cmq, (void **)&tmp, NULL))) {
+      if (!(cmq_remove (cmq, (void **)&tmp, NULL, 0))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
@@ -151,7 +151,7 @@ void *worker_test (void *vptr_cmq)
          }
          THRD_LOG ("Insert [%s] into cmq [%zu elements]\n", tmp, cmq_count (cmq));
       } else {
-         if (!(cmq_remove (cmq, (void **)&tmp, NULL))) {
+         if (!(cmq_remove (cmq, (void **)&tmp, NULL, 1))) {
             THRD_LOG ("Queue appears to be empty, unable to remove\n");
             continue;
          }

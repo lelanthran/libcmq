@@ -23,7 +23,7 @@ extern "C" {
    size_t cmq_count (cmq_t *cmq);
 
    bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len);
-   bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len);
+   bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout);
    bool cmq_peek (cmq_t *cmq, void **payload, size_t *payload_len);
 
 #ifdef __cplusplus
