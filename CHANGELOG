@@ -1,0 +1,6 @@
+# v1.0.1 -
+
+# v1.0.0 - Sat 06 Feb 2021 13:04:20 SAST
+
+Initial release, with only the bare minimm needed functions, enqueue and
+dequeue. Tested on Linux and Windows only.
