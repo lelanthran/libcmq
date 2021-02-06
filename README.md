@@ -33,11 +33,12 @@ if (!(cmq_nq (my_queue, &src_data, sizeof src_data))) {
 ```
 // Remove elements from the queue; if the queue
 // is empty, we want to wait 5s for a message to
-// arrive
+// arrive.
 if ((cmq_dq (my_queue, &dst_data, sizeof dst_data, 5))) {
    // Use dst_data
 } else {
-   // Queue is empty, nothing returned
+   // Queue is empty, nothing returned even after waiting
+   // for 5s for a message to arrive.
 }
 ...
 ```
