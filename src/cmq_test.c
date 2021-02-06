@@ -1,4 +1,9 @@
 
+/* ****************************************************************************
+ *                   Copyright © Lelanthran Manickum, 2021                    *
+ *                     Provided under Gnu LGPL 2.1 only.                      *
+ * ****************************************************************************/
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

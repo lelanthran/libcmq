@@ -1,3 +1,9 @@
+
+/* ****************************************************************************
+ *                   Copyright © Lelanthran Manickum, 2021                    *
+ *                     Provided under Gnu LGPL 2.1 only.                      *
+ * ****************************************************************************/
+
 #include <stdlib.h>
 #include <stdlib.h>
 #include <time.h>
