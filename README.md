@@ -1,11 +1,11 @@
 # libcmq
-A simple thread-safe message queue for C
+A simple thread-safe message queue for use with `pthreads` threads.
 
 ## Overview
 Implementation of a very simple thread-safe queue. The queue stores pointers
-to messages of any type; it does not keep a copies of messages. In short, if
-the message was `malloc()`ed before put into the queue, the caller should
-`free()` the message when removing it from the queue.
+to messages of any type; it does not keep copies of messages. In short, if
+the message was `malloc()`ed before being put into the queue, the caller
+should `free()` the message when removing it from the queue.
 
 A new queue is created with `cmq_new()`, messages are placed into the queue
 using `cmq_nq()`, messages are removed from the queue using `cmq_dq()` and the
@@ -34,10 +34,10 @@ if (!(cmq_nq (my_queue, &src_data, sizeof src_data))) {
 // Remove elements from the queue; if the queue
 // is empty, we want to wait 5s for a message to
 // arrive
-if (!(cmq_dq (my_queue, &dst_data, sizeof dst_data, 5))) {
-   // Handle error
-} else {
+if ((cmq_dq (my_queue, &dst_data, sizeof dst_data, 5))) {
    // Use dst_data
+} else {
+   // Queue is empty, nothing returned
 }
 ...
 ```
@@ -66,6 +66,9 @@ On Windows, I build it using git-bash as the shell with mingw64 in the PATH
 environment variable. The same make targets are used, but be sure to use
 `mingw32-make` and not `make` when in the git-bash shell.
 
+**Mingw64** should be the *mingw-posix-\**, I do not think it will work with
+the *mingw-win32-\** distribution.
+
 ## BUGS
 Probably. Threaded code is notoriously difficult to get correct and this code
 does not even attempt deadlock detection, nevermind deadlock avoidance.
@@ -78,7 +81,7 @@ as OJ's lawyer once said, nothing can be proven.
    when storing raw buffers. Mostly callers store struct types in a queue.
 - BSD testing, obviously.
 - Maybe some code-butchering to make macOS work.
-- Queue persistence (write queue out to disk and read queue back in from disk).
+- Queue persistence: write queue out to disk and read queue back in from disk.
 - Collection of statistics/counters:
    - How much time was spent waiting on locks
    - How much time was spent waiting for messages
