@@ -39,7 +39,7 @@ bool populate_strings (cmq_t *cmq, bool allocate)
    for (size_t i=0; i<g_nstrings; i++) {
       g_strings[i].len = strlen (g_strings[i].string) + 1;
       char *tmp = allocate ? lstrdup (g_strings[i].string) : g_strings[i].string;
-      if (!(cmq_insert (cmq, tmp, g_strings[i].len))) {
+      if (!(cmq_nq (cmq, tmp, g_strings[i].len))) {
          CMQ_LOG ("Failed to insert [%s:%zu]\n", g_strings[i].string, g_strings[i].len);
          ret = false;
       }
@@ -60,8 +60,8 @@ int test_simple (cmq_t *cmq)
       ret = EXIT_FAILURE;
    }
 
-   while ((more = cmq_remove (cmq, (void *)&output, &output_len, 0))==true) {
-      CMQ_LOG ("Removed [%s:%zu] (%zu remaining)\n", output, output_len, cmq_count (cmq));
+   while ((more = cmq_dq (cmq, (void *)&output, &output_len, 0))==true) {
+      CMQ_LOG ("Removed [%s:%zu] (%i remaining)\n", output, output_len, cmq_count (cmq));
    }
 
    return ret;
@@ -76,7 +76,6 @@ int test_gradual_depletion (cmq_t *cmq)
       ret = EXIT_FAILURE;
    }
 
-   // TODO: Add 1 string, remove 2, in a loop until the queue is empty.
    size_t limit = cmq_count (cmq) * 4;
    size_t i = 0;
 
@@ -84,7 +83,7 @@ int test_gradual_depletion (cmq_t *cmq)
    while (i++ < limit) {
       char test_string[30];
       snprintf (test_string, sizeof test_string, "String [%zu]", i);
-      if (!(cmq_insert (cmq, lstrdup (test_string), strlen (test_string) + 1))) {
+      if (!(cmq_nq (cmq, lstrdup (test_string), strlen (test_string) + 1))) {
          CMQ_LOG ("Failed to insert [%s]\n", test_string);
          ret = EXIT_FAILURE;
       }
@@ -92,20 +91,20 @@ int test_gradual_depletion (cmq_t *cmq)
 
       char *tmp = NULL;
 
-      if (!(cmq_remove (cmq, (void **)&tmp, NULL, 0))) {
+      if (!(cmq_dq (cmq, (void **)&tmp, NULL, 0))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
       CMQ_LOG ("Removed [%s]\n", tmp);
       free (tmp);
-      if (!(cmq_remove (cmq, (void **)&tmp, NULL, 0))) {
+      if (!(cmq_dq (cmq, (void **)&tmp, NULL, 0))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
       CMQ_LOG ("Removed [%s]\n", tmp);
       free (tmp);
    }
-   CMQ_LOG ("Looped [%zu]\n", i);
+   CMQ_LOG ("Looped [%zu] times\n", i);
 
    return ret;
 }
@@ -144,18 +143,18 @@ void *worker_test (void *vptr_cmq)
          char tmpstring[20];
          snprintf (tmpstring, sizeof tmpstring, "%lu: [%zu]", id, i);
          tmp = lstrdup (tmpstring);
-         if (!(cmq_insert (cmq, tmp, strlen (tmp) + 1))) {
-            THRD_LOG ("Error: unable to insert into cmq [%zu elements]\n", cmq_count (cmq));
+         if (!(cmq_nq (cmq, tmp, strlen (tmp) + 1))) {
+            THRD_LOG ("Error: unable to insert into cmq [%i elements]\n", cmq_count (cmq));
             free (tmp);
             return NULL;
          }
-         THRD_LOG ("Insert [%s] into cmq [%zu elements]\n", tmp, cmq_count (cmq));
+         THRD_LOG ("Insert [%s] into cmq [%i elements]\n", tmp, cmq_count (cmq));
       } else {
-         if (!(cmq_remove (cmq, (void **)&tmp, NULL, 1))) {
+         if (!(cmq_dq (cmq, (void **)&tmp, NULL, 1))) {
             THRD_LOG ("Queue appears to be empty, unable to remove\n");
             continue;
          }
-         THRD_LOG ("Removed [%s] from cmq [%zu elements]\n", tmp, cmq_count (cmq));
+         THRD_LOG ("Removed [%s] from cmq [%i elements]\n", tmp, cmq_count (cmq));
          free (tmp);
       }
       struct timespec tv = { 0, 0};

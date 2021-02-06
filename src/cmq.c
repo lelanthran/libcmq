@@ -95,22 +95,20 @@ void cmq_del (cmq_t *cmq)
    free (cmq);
 }
 
-size_t cmq_count (cmq_t *cmq)
+int cmq_count (cmq_t *cmq)
 {
    if (!cmq)
       return 0;
 
    int semvalue;
    if ((sem_getvalue (&cmq->sem, &semvalue))!=0) {
-      return (size_t)-1;
+      return -1;
    }
 
-   size_t ret = semvalue;
-
-   return ret;
+   return semvalue;
 }
 
-bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len)
+bool cmq_nq (cmq_t *cmq, void *payload, size_t payload_len)
 {
    struct cmq_node_t *newnode = NULL;
    if (!cmq)
@@ -141,7 +139,7 @@ bool cmq_insert (cmq_t *cmq, void *payload, size_t payload_len)
    return true;
 }
 
-bool cmq_remove (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout)
+bool cmq_dq (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout)
 {
    if (!cmq)
       return false;
