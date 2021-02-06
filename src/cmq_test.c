@@ -125,23 +125,30 @@ pthread_mutex_t g_lock;
 
 void *worker_test (void *vptr_cmq)
 {
+
+#ifdef PLATFORM_Windows
+#define PTHREAD_SPEC    "%llu"
+#else
+#define PTHREAD_SPEC    "%lu"
+#endif
+
 #define THRD_LOG(...)        do {\
    pthread_mutex_lock (&g_lock);\
-   printf ("%lu: ", id);\
+   printf (PTHREAD_SPEC ": ", id);\
    printf (__VA_ARGS__);\
    pthread_mutex_unlock (&g_lock);\
 } while (0)
 
    cmq_t *cmq = vptr_cmq;
    pthread_t id = pthread_self ();
-   THRD_LOG ("Starting thread [%lu]\n", id);
+   THRD_LOG ("Starting thread [" PTHREAD_SPEC "]\n", id);
 
    for (size_t i=0; i<200; i++) {
       int toss = rand () % 2;
       char *tmp = NULL;
       if (toss) {
          char tmpstring[20];
-         snprintf (tmpstring, sizeof tmpstring, "%lu: [%zu]", id, i);
+         snprintf (tmpstring, sizeof tmpstring, "" PTHREAD_SPEC ": [%zu]", id, i);
          tmp = lstrdup (tmpstring);
          if (!(cmq_nq (cmq, tmp, strlen (tmp) + 1))) {
             THRD_LOG ("Error: unable to insert into cmq [%i elements]\n", cmq_count (cmq));
