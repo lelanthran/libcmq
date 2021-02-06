@@ -23,12 +23,14 @@ cmq_t *my_queue = cmq_new ();
 if (!my_queue) {
    // Handle error
 }
-...
+```
+```
 // Insert elements into the queue
 if (!(cmq_nq (my_queue, &src_data, sizeof src_data))) {
    // Handle error
 }
-...
+```
+```
 // Remove elements from the queue; if the queue
 // is empty, we want to wait 5s for a message to
 // arrive
@@ -38,7 +40,8 @@ if (!(cmq_dq (my_queue, &dst_data, sizeof dst_data, 5))) {
    // Use dst_data
 }
 ...
-...
+```
+```
 // Finally, delete the queue after we are done with it.
 cmq_del (my_queue);
 ```
@@ -62,6 +65,13 @@ clean-release` or `make clean-all`.
 On Windows, I build it using git-bash as the shell with mingw64 in the PATH
 environment variable. The same make targets are used, but be sure to use
 `mingw32-make` and not `make` when in the git-bash shell.
+
+## BUGS
+Probably. Threaded code is notoriously difficult to get correct and this code
+does not even attempt deadlock detection, nevermind deadlock avoidance.
+
+A good-faith and reasonable test was run to attempt to find deadlocks but,
+as OJ's lawyer once said, nothing can be proven.
 
 ## Still on the cards
 - Maybe remove the length requirement for messages? Callers might use it only
