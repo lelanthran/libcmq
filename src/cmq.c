@@ -116,7 +116,7 @@ int cmq_count (cmq_t *cmq)
    return semvalue;
 }
 
-bool cmq_nq (cmq_t *cmq, void *payload, size_t payload_len)
+bool cmq_post (cmq_t *cmq, void *payload, size_t payload_len)
 {
    struct cmq_node_t *newnode = NULL;
    if (!cmq)
@@ -147,12 +147,12 @@ bool cmq_nq (cmq_t *cmq, void *payload, size_t payload_len)
    return true;
 }
 
-bool cmq_dq (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout)
+bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_ms)
 {
    if (!cmq)
       return false;
 
-   if (timeout==0) {
+   if (timeout_ms==0) {
       if ((sem_trywait (&cmq->sem))!=0) {
          return false;
       }
@@ -161,7 +161,7 @@ bool cmq_dq (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout)
       if ((clock_gettime (CLOCK_REALTIME, &ts))!=0) {
          return false;
       }
-      ts.tv_sec += timeout;
+      ts.tv_nsec += timeout_ms / 1000000;
       if ((sem_timedwait (&cmq->sem, &ts))!=0) {
          return false;
       }

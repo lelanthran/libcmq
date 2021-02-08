@@ -14,7 +14,7 @@
 /* *****************************************************************************
  * Implementation of a thread-safe FIFO message-queue using POSIX threads.
  *
- * Messages are added to the queue with cmq_nq() and removed with cmq_dq(). Messages
+ * Messages are added to the queue with cmq_post() and removed with cmq_wait(). Messages
  * are added to the head of the queue and removed from the tail of the queue; this means
  * that the oldest messages are removed first.
  *
@@ -40,7 +40,7 @@ extern "C" {
    int cmq_count (cmq_t *cmq);
 
    // Insert the element into the queue, returns true on success and false on error.
-   bool cmq_nq (cmq_t *cmq, void *payload, size_t payload_len);
+   bool cmq_post (cmq_t *cmq, void *payload, size_t payload_len);
 
    // Removes an element from the queue and places the element's pointer and length
    // into the buffers provided. If the queue is empty, this function will wait a maximum
@@ -57,7 +57,7 @@ extern "C" {
    // payload_len.
    // Returns false if no message was removed, in which case payload and payload_len
    // remain unchanged.
-   bool cmq_dq (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout);
+   bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_ms);
 
    // Returns a message without removing it from the queue. Returns true if a message
    // was found, in which case payload and payload_len contains the message.

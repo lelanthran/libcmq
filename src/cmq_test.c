@@ -45,7 +45,7 @@ bool populate_strings (cmq_t *cmq, bool allocate)
    for (size_t i=0; i<g_nstrings; i++) {
       g_strings[i].len = strlen (g_strings[i].string) + 1;
       char *tmp = allocate ? lstrdup (g_strings[i].string) : g_strings[i].string;
-      if (!(cmq_nq (cmq, tmp, g_strings[i].len))) {
+      if (!(cmq_post (cmq, tmp, g_strings[i].len))) {
          CMQ_LOG ("Failed to insert [%s:%zu]\n", g_strings[i].string, g_strings[i].len);
          ret = false;
       }
@@ -66,7 +66,7 @@ int test_simple (cmq_t *cmq)
       ret = EXIT_FAILURE;
    }
 
-   while ((more = cmq_dq (cmq, (void *)&output, &output_len, 0))==true) {
+   while ((more = cmq_wait (cmq, (void *)&output, &output_len, 0))==true) {
       CMQ_LOG ("Removed [%s:%zu] (%i remaining)\n", output, output_len, cmq_count (cmq));
    }
 
@@ -89,7 +89,7 @@ int test_gradual_depletion (cmq_t *cmq)
    while (i++ < limit) {
       char test_string[30];
       snprintf (test_string, sizeof test_string, "String [%zu]", i);
-      if (!(cmq_nq (cmq, lstrdup (test_string), strlen (test_string) + 1))) {
+      if (!(cmq_post (cmq, lstrdup (test_string), strlen (test_string) + 1))) {
          CMQ_LOG ("Failed to insert [%s]\n", test_string);
          ret = EXIT_FAILURE;
       }
@@ -97,13 +97,13 @@ int test_gradual_depletion (cmq_t *cmq)
 
       char *tmp = NULL;
 
-      if (!(cmq_dq (cmq, (void **)&tmp, NULL, 0))) {
+      if (!(cmq_wait (cmq, (void **)&tmp, NULL, 0))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
       CMQ_LOG ("Removed [%s]\n", tmp);
       free (tmp);
-      if (!(cmq_dq (cmq, (void **)&tmp, NULL, 0))) {
+      if (!(cmq_wait (cmq, (void **)&tmp, NULL, 0))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
@@ -156,14 +156,14 @@ void *worker_test (void *vptr_cmq)
          char tmpstring[20];
          snprintf (tmpstring, sizeof tmpstring, "" PTHREAD_SPEC ": [%zu]", id, i);
          tmp = lstrdup (tmpstring);
-         if (!(cmq_nq (cmq, tmp, strlen (tmp) + 1))) {
+         if (!(cmq_post (cmq, tmp, strlen (tmp) + 1))) {
             THRD_LOG ("Error: unable to insert into cmq [%i elements]\n", cmq_count (cmq));
             free (tmp);
             return NULL;
          }
          THRD_LOG ("Insert [%s] into cmq [%i elements]\n", tmp, cmq_count (cmq));
       } else {
-         if (!(cmq_dq (cmq, (void **)&tmp, NULL, 1))) {
+         if (!(cmq_wait (cmq, (void **)&tmp, NULL, 1000))) {
             THRD_LOG ("Queue appears to be empty, unable to remove\n");
             continue;
          }
