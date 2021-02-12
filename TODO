@@ -1,4 +1,1 @@
 ============================================================
-Store the current time (nanosecond granularity) when adding items
-to a queue, and return the difference when removing items from the
-queue.
