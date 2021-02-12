@@ -1,1 +1,8 @@
-============================================================
+=========================================================================
+Maybe not a bad idea to have serialisation of the qeue to file? Can be
+done by requiring callers to provide a _element_write() call and an
+_element_read() call.
+
+This means that if serialisation is used then the elements in the queue
+must all be readable and writable by the supplied functions.
+
