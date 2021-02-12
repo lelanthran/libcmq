@@ -7,6 +7,8 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdint.h>
+#include <string.h>
 
 #include <pthread.h>
 #include <semaphore.h>
@@ -20,6 +22,8 @@ struct cmq_node_t {
 
    void *payload;             // Payload is not a copy. Do not delete it.
    size_t payload_len;
+
+   struct timespec start_time;     // Used to determine how long element was alive
 };
 
 static struct cmq_node_t *cmq_node_new (void *payload, size_t payload_len)
@@ -31,13 +35,38 @@ static struct cmq_node_t *cmq_node_new (void *payload, size_t payload_len)
    ret->payload = payload;
    ret->payload_len = payload_len;
 
+   // We don't care about errors here - it may throw off the accounting but the
+   // queue will still work. Callers getting suspicious lifetime values will have
+   // to look into why the clock isn't working.
+   clock_gettime (CLOCK_BOOTTIME, &ret->start_time);
+
    return ret;
 }
 
-static void cmq_node_del (struct cmq_node_t *node)
+static void cmq_node_del (struct cmq_node_t *node, struct timespec *lifetime)
 {
    if (!node)
       return;
+
+   if (lifetime) {
+      struct timespec now = { 0, 0};
+      clock_gettime (CLOCK_BOOTTIME, &now);
+
+      int64_t diff_ns = now.tv_nsec - node->start_time.tv_nsec;
+      if (diff_ns < 0) {
+         now.tv_sec--;
+         now.tv_nsec += 1000000000;
+         diff_ns = now.tv_nsec - node->start_time.tv_nsec;
+      }
+
+      int64_t diff_s = now.tv_sec - node->start_time.tv_sec;
+      if (diff_s >= 0) {
+         lifetime->tv_sec = diff_s;
+         lifetime->tv_nsec = diff_ns;
+      } else {
+         memset (lifetime, 0, sizeof *lifetime);
+      }
+   }
 
    free (node);
 }
@@ -89,7 +118,7 @@ void cmq_del (cmq_t *cmq)
 
    while (cmq->head) {
       struct cmq_node_t *tmp = cmq->head->next;
-      cmq_node_del (cmq->head);
+      cmq_node_del (cmq->head, NULL);
       cmq->head = tmp;
    }
 
@@ -147,8 +176,11 @@ bool cmq_post (cmq_t *cmq, void *payload, size_t payload_len)
    return true;
 }
 
-bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_ms)
+bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_ms,
+               struct timespec *lifetime)
 {
+   struct timespec ts = { 0, 0 };
+
    if (!cmq)
       return false;
 
@@ -157,7 +189,6 @@ bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_m
          return false;
       }
    } else {
-      struct timespec ts = { 0, 0 };
       if ((clock_gettime (CLOCK_REALTIME, &ts))!=0) {
          return false;
       }
@@ -178,7 +209,7 @@ bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_m
             if (payload_len)
                *payload_len = cmq->tail->payload_len;
 
-            cmq_node_del (cmq->tail);
+            cmq_node_del (cmq->tail, lifetime);
 
             cmq->head = cmq->tail = NULL;
 
@@ -199,7 +230,7 @@ bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_m
       cmq->tail = cmq->tail->prev;
       cmq->tail->next = NULL;
 
-      cmq_node_del (tmp);
+      cmq_node_del (tmp, lifetime);
 
    pthread_mutex_unlock (&cmq->lock_tail);
 

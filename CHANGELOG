@@ -1,5 +1,10 @@
 # v1.0.2 - ???
-
+1. Changed interface to cmq_wait() to allow (optional) return
+   value indicating approx how mch time in nanoseconds the element
+   stayed in the queue.
+   This is needed because callers might want to track queue performance
+   and alter their behaviour accordingly. If callers do not want to
+   get the queue element's lifetime the parameter can be NULL.
 
 # v1.0.1 - Tue 09 Feb 2021 00:15:42 SAST
 

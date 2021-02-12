@@ -8,11 +8,24 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include <time.h>
 
 #include <pthread.h>
 
 #include "cmq.h"
+
+// Return millseconds
+static float ts_to_float (struct timespec *ts)
+{
+   float ret = 0;
+   ret = ts->tv_sec * 1000000000;
+   ret += ts->tv_nsec;
+
+   ret = ret / 1000000;
+
+   return ret;
+}
 
 static char *lstrdup (const char *src)
 {
@@ -66,8 +79,11 @@ int test_simple (cmq_t *cmq)
       ret = EXIT_FAILURE;
    }
 
-   while ((more = cmq_wait (cmq, (void *)&output, &output_len, 0))==true) {
-      CMQ_LOG ("Removed [%s:%zu] (%i remaining)\n", output, output_len, cmq_count (cmq));
+   struct timespec lifetime;
+
+   while ((more = cmq_wait (cmq, (void *)&output, &output_len, 0, &lifetime))==true) {
+      CMQ_LOG ("Removed [%s:%zu (alive for %0.4fms] (%i remaining)\n",
+                output, output_len, ts_to_float (&lifetime), cmq_count (cmq));
    }
 
    return ret;
@@ -96,14 +112,15 @@ int test_gradual_depletion (cmq_t *cmq)
       CMQ_LOG ("Added [%s]\n", test_string);
 
       char *tmp = NULL;
+      struct timespec lifetime;
 
-      if (!(cmq_wait (cmq, (void **)&tmp, NULL, 0))) {
+      if (!(cmq_wait (cmq, (void **)&tmp, NULL, 0, &lifetime))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
-      CMQ_LOG ("Removed [%s]\n", tmp);
+      CMQ_LOG ("Removed [%s (lifetime %0.4fms)]\n", tmp, ts_to_float (&lifetime));
       free (tmp);
-      if (!(cmq_wait (cmq, (void **)&tmp, NULL, 0))) {
+      if (!(cmq_wait (cmq, (void **)&tmp, NULL, 0, NULL))) {
          CMQ_LOG ("No more elements to remove\n");
          break;
       }
@@ -152,6 +169,7 @@ void *worker_test (void *vptr_cmq)
    for (size_t i=0; i<200; i++) {
       int toss = rand () % 2;
       char *tmp = NULL;
+      struct timespec lifetime;
       if (toss) {
          char tmpstring[20];
          snprintf (tmpstring, sizeof tmpstring, "" PTHREAD_SPEC ": [%zu]", id, i);
@@ -163,11 +181,12 @@ void *worker_test (void *vptr_cmq)
          }
          THRD_LOG ("Insert [%s] into cmq [%i elements]\n", tmp, cmq_count (cmq));
       } else {
-         if (!(cmq_wait (cmq, (void **)&tmp, NULL, 1000))) {
+         if (!(cmq_wait (cmq, (void **)&tmp, NULL, 1000, &lifetime))) {
             THRD_LOG ("Queue appears to be empty, unable to remove\n");
             continue;
          }
-         THRD_LOG ("Removed [%s] from cmq [%i elements]\n", tmp, cmq_count (cmq));
+         THRD_LOG ("Removed [%s (lifetime %0.4fms)] from cmq [%i elements]\n",
+                    tmp, ts_to_float (&lifetime), cmq_count (cmq));
          free (tmp);
       }
       struct timespec tv = { 0, 0};
