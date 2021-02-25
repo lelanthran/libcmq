@@ -38,7 +38,7 @@ static struct cmq_node_t *cmq_node_new (void *payload, size_t payload_len)
    // We don't care about errors here - it may throw off the accounting but the
    // queue will still work. Callers getting suspicious lifetime values will have
    // to look into why the clock isn't working.
-   clock_gettime (CLOCK_BOOTTIME, &ret->start_time);
+   clock_gettime (CLOCK_REALTIME, &ret->start_time);
 
    return ret;
 }
@@ -50,7 +50,7 @@ static void cmq_node_del (struct cmq_node_t *node, struct timespec *lifetime)
 
    if (lifetime) {
       struct timespec now = { 0, 0};
-      clock_gettime (CLOCK_BOOTTIME, &now);
+      clock_gettime (CLOCK_REALTIME, &now);
 
       int64_t diff_ns = now.tv_nsec - node->start_time.tv_nsec;
       if (diff_ns < 0) {
