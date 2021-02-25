@@ -76,8 +76,7 @@ struct cmq_t {
    struct cmq_node_t *head;
    struct cmq_node_t *tail;
 
-   pthread_mutex_t lock_head;
-   pthread_mutex_t lock_tail;
+   pthread_mutex_t lock_ptrs;
 
    sem_t sem;
 };
@@ -98,8 +97,7 @@ cmq_t *cmq_new (void)
    pthread_mutexattr_init (&attr);
    pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
 
-   pthread_mutex_init (&ret->lock_head,   &attr);
-   pthread_mutex_init (&ret->lock_tail,   &attr);
+   pthread_mutex_init (&ret->lock_ptrs,   &attr);
 
    pthread_mutexattr_destroy (&attr);
 
@@ -111,8 +109,7 @@ void cmq_del (cmq_t *cmq)
    if (!cmq)
       return;
 
-   pthread_mutex_lock (&cmq->lock_head);
-   pthread_mutex_lock (&cmq->lock_tail);
+   pthread_mutex_lock (&cmq->lock_ptrs);
 
    sem_destroy (&cmq->sem);
 
@@ -122,11 +119,9 @@ void cmq_del (cmq_t *cmq)
       cmq->head = tmp;
    }
 
-   pthread_mutex_unlock (&cmq->lock_head);
-   pthread_mutex_unlock (&cmq->lock_tail);
+   pthread_mutex_unlock (&cmq->lock_ptrs);
 
-   pthread_mutex_destroy (&cmq->lock_head);
-   pthread_mutex_destroy (&cmq->lock_tail);
+   pthread_mutex_destroy (&cmq->lock_ptrs);
 
 
    free (cmq);
@@ -156,7 +151,7 @@ bool cmq_post (cmq_t *cmq, void *payload, size_t payload_len)
 
    newnode->prev = NULL;
 
-   pthread_mutex_lock (&cmq->lock_head);
+   pthread_mutex_lock (&cmq->lock_ptrs);
 
       newnode->next = cmq->head;
       if (cmq->head)
@@ -164,12 +159,10 @@ bool cmq_post (cmq_t *cmq, void *payload, size_t payload_len)
 
       cmq->head = newnode;
 
-   pthread_mutex_unlock (&cmq->lock_head);
+      if (!cmq->tail)
+         cmq->tail = newnode;
 
-   pthread_mutex_lock (&cmq->lock_tail);
-   if (!cmq->tail)
-      cmq->tail = newnode;
-   pthread_mutex_unlock (&cmq->lock_tail);
+   pthread_mutex_unlock (&cmq->lock_ptrs);
 
    sem_post (&cmq->sem);
 
@@ -198,27 +191,23 @@ bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_m
       }
    }
 
-   pthread_mutex_lock (&cmq->lock_tail);
+   pthread_mutex_lock (&cmq->lock_ptrs);
+      if (cmq->head == cmq->tail) {
 
-      pthread_mutex_lock (&cmq->lock_head);
-         if (cmq->head == cmq->tail) {
+         if (payload)
+            *payload = cmq->tail->payload;
 
-            if (payload)
-               *payload = cmq->tail->payload;
+         if (payload_len)
+            *payload_len = cmq->tail->payload_len;
 
-            if (payload_len)
-               *payload_len = cmq->tail->payload_len;
+         cmq_node_del (cmq->tail, lifetime);
 
-            cmq_node_del (cmq->tail, lifetime);
+         cmq->head = cmq->tail = NULL;
 
-            cmq->head = cmq->tail = NULL;
+         pthread_mutex_unlock (&cmq->lock_ptrs);
 
-            pthread_mutex_unlock (&cmq->lock_tail);
-            pthread_mutex_unlock (&cmq->lock_head);
-
-            return true;
-         }
-      pthread_mutex_unlock (&cmq->lock_head);
+         return true;
+      }
 
       if (payload)
          *payload = cmq->tail->payload;
@@ -230,9 +219,9 @@ bool cmq_wait (cmq_t *cmq, void **payload, size_t *payload_len, size_t timeout_m
       cmq->tail = cmq->tail->prev;
       cmq->tail->next = NULL;
 
-      cmq_node_del (tmp, lifetime);
+   pthread_mutex_unlock (&cmq->lock_ptrs);
 
-   pthread_mutex_unlock (&cmq->lock_tail);
+   cmq_node_del (tmp, lifetime);
 
    return true;
 }
@@ -242,9 +231,9 @@ bool cmq_peek (cmq_t *cmq, void **payload, size_t *payload_len)
    if (!cmq)
       return false;
 
-   pthread_mutex_lock (&cmq->lock_tail);
+   pthread_mutex_lock (&cmq->lock_ptrs);
       if (!cmq->tail) {
-         pthread_mutex_unlock (&cmq->lock_tail);
+         pthread_mutex_unlock (&cmq->lock_ptrs);
          return false;
       }
 
@@ -254,7 +243,7 @@ bool cmq_peek (cmq_t *cmq, void **payload, size_t *payload_len)
       if (payload_len)
          *payload_len = cmq->tail->payload_len;
 
-   pthread_mutex_unlock (&cmq->lock_tail);
+   pthread_mutex_unlock (&cmq->lock_ptrs);
 
    return true;
 }

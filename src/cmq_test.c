@@ -174,12 +174,12 @@ void *worker_test (void *vptr_cmq)
          char tmpstring[20];
          snprintf (tmpstring, sizeof tmpstring, "" PTHREAD_SPEC ": [%zu]", id, i);
          tmp = lstrdup (tmpstring);
+         THRD_LOG ("Inserting [%s] into cmq [%i elements]\n", tmp, cmq_count (cmq));
          if (!(cmq_post (cmq, tmp, strlen (tmp) + 1))) {
             THRD_LOG ("Error: unable to insert into cmq [%i elements]\n", cmq_count (cmq));
             free (tmp);
             return NULL;
          }
-         THRD_LOG ("Insert [%s] into cmq [%i elements]\n", tmp, cmq_count (cmq));
       } else {
          if (!(cmq_wait (cmq, (void **)&tmp, NULL, 1000, &lifetime))) {
             THRD_LOG ("Queue appears to be empty, unable to remove\n");
