@@ -1,10 +1,15 @@
-# v1.0.2 - ???
+# v1.0.2 - Thu 25 Feb 2021 22:24:05 SAST
 1. Changed interface to cmq_wait() to allow (optional) return
    value indicating approx how mch time in nanoseconds the element
    stayed in the queue.
    This is needed because callers might want to track queue performance
    and alter their behaviour accordingly. If callers do not want to
    get the queue element's lifetime the parameter can be NULL.
+
+2. Changed locking protocol; no change to callers are required. The
+   previous locking protocol made deadlocking probable. The fix now
+   makes deadlock almost impossible by using only a single lock. This
+   slows down insertion/removal from a queue by very little.
 
 # v1.0.1 - Tue 09 Feb 2021 00:15:42 SAST
 
