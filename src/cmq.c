@@ -127,6 +127,12 @@ void cmq_del (cmq_t *cmq)
    free (cmq);
 }
 
+bool cmq_resize (cmq_t *cmq, size_t nelems)
+{
+   // TODO: Unimplemented.
+   return false;
+}
+
 int cmq_count (cmq_t *cmq)
 {
    if (!cmq)

@@ -22,6 +22,8 @@
  */
 typedef struct cmq_t cmq_t;
 
+#define CMQ_DEFAULT_LENGTH       (5)
+
 #define CMQ_LOG(...)        do {\
    printf ("[%s:%i] ", __FILE__, __LINE__);\
    printf (__VA_ARGS__);\
@@ -32,15 +34,23 @@ extern "C" {
 #endif
 
    //    Create a new queue. Queue must be destroyed with cmq_del(). Returns NULL on
-   // error.
+   // error. Queue is created with a maximum length of CMQ_DEFAULT_LENGTH, which can
+   // be expanded later using cmq_resize().
    cmq_t *cmq_new (void);
+
    //    Destroys a queue, discarding all the elements contained within it.
    void cmq_del (cmq_t *cmq);
+
+   //    Resize the queue to hold a maximum of nelems as specified by the caller.
+   // A value of zero for nelems does not change the current length of the queue but
+   // causes the queue to resize automatically when it runs out of space to store
+   // elements.
+   bool cmq_resize (cmq_t *cmq, size_t nelems);
 
    //    Returns the number of elements in the queue, or <0 on error.
    int cmq_count (cmq_t *cmq);
 
-   // Insert the element into the queue, returns true on success and false on error.
+   //    Insert the element into the queue, returns true on success and false on error.
    bool cmq_post (cmq_t *cmq, void *payload, size_t payload_len);
 
    //    Removes an element from the queue and places the element's pointer and length
