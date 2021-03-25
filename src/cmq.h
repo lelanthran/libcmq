@@ -45,6 +45,11 @@ extern "C" {
    // A value of zero for nelems does not change the current length of the queue but
    // causes the queue to resize automatically when it runs out of space to store
    // elements.
+   //
+   //    A value less then the current population of the queue does nothing; the
+   // queue remains the same size and no error is signalled.
+   //
+   //    Returns true on success and false on any errors.
    bool cmq_resize (cmq_t *cmq, size_t nelems);
 
    //    Returns the number of elements in the queue, or <0 on error.
