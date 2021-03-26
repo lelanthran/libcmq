@@ -1,4 +1,15 @@
 =========================================================================
+Change the implementation of queues to be based on fixed-array sizes
+(messages received when the array is full mst be held or dropped by the
+caller).
+
+Currently we simply store all messages until the computer falls over
+due to memory exhaustion. This is a poor default. Much better to let
+the caller explicitly handle overflowing queues.
+
+This means that the linked-list solution must be re-implemented as a
+fixed-array (specified at runtime by the caller).
+=========================================================================
 Maybe not a bad idea to have serialisation of the qeue to file? Can be
 done by requiring callers to provide a _element_write() call and an
 _element_read() call.
